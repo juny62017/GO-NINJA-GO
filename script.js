@@ -691,3 +691,109 @@ var resetGame = function() {
     newJumpPress = false;
     attackCompleted = false;
 };
+var titleScreenLoop = function(now, oldTime) {
+    var sx = 0;
+    var sy = 0;
+    var swidth = 384;
+    var sheight = 224;
+    context.drawImage(
+        titleScreen,
+        sx,
+        sy,
+        swidth,
+        sheight,
+        0,
+        0,
+        816,
+        480
+    );
+    context.font = "90px Luminari, fantasy";
+    context.fillStyle = "rgb(242,131,28)";
+    context.fillText("Platform Pillage", 75, 140);
+    context.font = "60px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227, " +
+        (0.75 + 0.15 * Math.cos(2 * 3.1415 * (Math.round(now - oldTime) / 1000))) + ")";
+    context.fillText("Press Enter", 240, 260);
+    let currentFrame = Math.floor(
+        ((Date.now() / 100) % heroAnimations[heroAnimationIndex][1])
+    );
+    context.drawImage(
+        heroAnimations[heroAnimationIndex][0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        SCREEN_WIDTH / 2 - 100,
+        280,
+        200,
+        59 * 2
+    );
+    if (pressedKeys["13"] || (enterPressedInitially && !beyondTitleScreen)) {
+        gameStarted = true;
+        beyondTitleScreen = true;
+    }
+};
+
+var gameOverScreen = function(now, oldTime) {
+    context.fillStyle = "black";
+    context.fillRect(0, 0, 816, 480);
+    context.font = "90px Luminari, fantasy";
+    context.fillStyle = "red";
+    context.fillText("Game Over", 170, 140);
+    context.font = "60px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227, " +
+        (0.50 + 0.10 * Math.cos(2 * 3.1415 * (Math.round(now - oldTime) / 1000))) + ")";
+    context.fillText("Press ESC to Exit", 170, 260);
+    let currentFrame = Math.floor(
+        ((Date.now() / 100) % heroAnimations[11][1])
+    );
+    context.drawImage(
+        heroAnimations[11][0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        SCREEN_WIDTH / 2 - 100,
+        280,
+        200,
+        59 * 2
+    );
+    if (pressedKeys["27"]) {
+        resetGame();
+        gameOver = false;
+    }
+};
+
+var demoCompleteScreen = function(now, oldTime) {
+    context.fillStyle = "rgb(67, 67, 67)";
+    context.fillRect(0, 0, 816, 480);
+    context.font = "90px Luminari, fantasy";
+    context.fillStyle = "#4BB543";
+    context.fillText("Level Complete", 90, 140);
+    context.font = "60px Luminari, fantasy";
+    context.fillStyle = "white";
+    const zeroPad = (num, places) => String(num).padStart(places, '0');
+    context.fillText("Score: " + zeroPad(points, 5) + " Pts", 180, 220);
+    context.font = "50px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227, " +
+        (0.50 + 0.10 * Math.cos(2 * 3.1415 * (Math.round(now - oldTime) / 1000))) + ")";
+    context.fillText("Press ESC to Exit", 200, 290);
+    let currentFrame = Math.floor(
+        ((Date.now() / 100) % heroAnimations[3][1])
+    );
+    context.drawImage(
+        heroAnimations[3][0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        SCREEN_WIDTH / 2 - 100,
+        280,
+        200,
+        59 * 2
+    );
+    if (pressedKeys["27"]) {
+        resetGame();
+        demoComplete = false;
+    }
+};
