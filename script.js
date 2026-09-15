@@ -511,3 +511,83 @@ var levels = [[
     levelRow13,
     levelRow14
 ]];
+const SCREEN_WIDTH = 816;
+const SCREEN_HEIGHT = 480;
+const TILE_SIZE = 32;
+let distanceFromFloor = 0;
+let nearestFloorHeight = -59;
+let newJumpPress = false;
+let attackCompleted = false;
+
+let hero = {
+    spriteWidth: 100,
+    spriteHeight: 59,
+    levelX: 140,
+    levelY: 480 - 32 - 59,
+    renderX: 100,
+    renderY: 480 - 32 - 59,
+    velocityY: 0
+};
+
+var audioElement = document.getElementById("theAudio");
+audioElement.load();
+audioElement.volume = 0.6;
+var audioPlaying = false;
+var enterPressedInitially = false;
+var beyondTitleScreen = false;
+onInitialEnterPress = function(e) {
+    if (e.key == "Enter") {
+        enterPressedInitially = true;
+        audioElement.play();
+    }
+};
+document.addEventListener('keypress', onInitialEnterPress);
+
+var drawTile = function(x, y, tileIndex) {
+    var sx = tileIndex * 32 -
+        64 * Math.floor(tileIndex / 64) * 32;
+    var sy = Math.floor(tileIndex / 64) * 32;
+    context.drawImage(
+        tiles,
+        sx,
+        sy,
+        32,
+        32,
+        x,
+        y,
+        32,
+        32
+    );
+};
+
+var drawLevelTiles = function(level, hTiles, vTiles, scrollPosition) {
+    for (var i = 0; i < hTiles; i++) {
+        for (var j = 0; j < vTiles; j++) {
+            if (level[j][i] == 1) {
+                drawTile(
+                    32 * i - scrollPosition,
+                    j * 32,
+                    18 + 64 * 3
+                );
+            } else if (level[j][i] == 10) {
+                drawTile(
+                    32 * i - scrollPosition,
+                    j * 32,
+                    49 + 64 * 9
+                );
+            } else if (level[j][i] == 12) {
+                drawTile(
+                    32 * i - scrollPosition,
+                    j * 32,
+                    23 + 64 * 1
+                );
+            } else if (level[j][i] != 0) {
+                drawTile(
+                    32 * i - scrollPosition,
+                    j * 32,
+                    41 + level[j][i] + 64 * 6
+                );
+            }
+        }
+    }
+};
