@@ -797,3 +797,117 @@ var demoCompleteScreen = function(now, oldTime) {
         demoComplete = false;
     }
 };
+var updateCamera = function() {
+    if (
+        hero.levelX + hero.spriteWidth / 2 >= SCREEN_WIDTH / 2 &&
+        scrollX + SCREEN_WIDTH < currentLevel[0].length * TILE_SIZE ||
+        hero.levelX + SCREEN_WIDTH / 2 + hero.spriteWidth / 2 <= currentLevel[0].length * TILE_SIZE &&
+        scrollX > 0
+    ) {
+        scrollX = hero.levelX - SCREEN_WIDTH / 2 + hero.spriteWidth / 2;
+    }
+    hero.renderX = hero.levelX - scrollX;
+    hero.renderY = hero.levelY;
+};
+
+var drawParallax = function() {
+    for (var i = 0; i < layers.length; i++) {
+        if (i == 0) {
+            context.drawImage(layers[i], 0, 0, 816, 480);
+        } else {
+            var sx = 0.0050 * scrollX * Math.pow(2, i);
+            if (i == 1) {
+                sx -= 0;
+            } else if (i == 4) {
+                sx -= Math.floor(sx / 263) * 263;
+            } else {
+                sx -= Math.floor(sx / 272) * 272;
+            }
+            var sy = 0;
+            var swidth = 272;
+            var sheight = 160;
+            context.drawImage(
+                layers[i],
+                sx,
+                sy,
+                swidth,
+                sheight,
+                0,
+                0,
+                816,
+                480
+            );
+        }
+    }
+};
+
+var drawHero = function() {
+    let currentFrame = Math.floor(
+        ((Date.now() - resetAnimationTime) / 100) % heroAnimations[heroAnimationIndex][1]
+    );
+    if (
+        (heroAnimationIndex == 4 || heroAnimationIndex == 5) &&
+        heroJumping &&
+        currentFrame == heroAnimations[heroAnimationIndex][1] - 1
+    ) {
+        heroPeakJumping = true;
+    }
+    if (
+        (heroAnimationIndex == 4 || heroAnimationIndex == 5) &&
+        heroPeakJumping
+    ) {
+        currentFrame = heroAnimations[heroAnimationIndex][1] - 1;
+    }
+    if (heroDirection == 0) {
+        currentFrame = heroAnimations[heroAnimationIndex][1] - currentFrame - 1;
+    }
+    context.drawImage(
+        heroAnimations[heroAnimationIndex][0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        hero.renderX,
+        hero.renderY,
+        hero.spriteWidth,
+        hero.spriteHeight
+    );
+    return currentFrame;
+};
+
+var getHeroCollisions = function() {
+    return checkSpriteTileCollisions({
+        levelX: hero.levelX + 25,
+        levelY: hero.levelY,
+        spriteWidth: 50,
+        spriteHeight: hero.spriteHeight
+    }, currentLevel);
+};
+
+var updateMovement = function(collisions) {
+    if (pressedKeys["65"]) {
+        if (hero.levelX > -25 && !collisions.left) {
+            hero.levelX -= 240 * interval;
+        }
+        heroAnimationIndex = 2;
+        heroDirection = 0;
+    }
+    if (pressedKeys["68"]) {
+        if (
+            hero.levelX + hero.spriteWidth - 25 - 30 < currentLevel[0].length * TILE_SIZE &&
+            !collisions.right
+        ) {
+            hero.levelX += 240 * interval;
+        }
+        heroAnimationIndex = 3;
+        heroDirection = 1;
+    }
+    if (!(pressedKeys[65] || pressedKeys[68])) {
+        if (heroDirection) heroAnimationIndex = 1;
+        else heroAnimationIndex = 0;
+    }
+    if (pressedKeys["83"]) {
+        if (heroDirection) heroAnimationIndex = 9;
+        else heroAnimationIndex = 8;
+    }
+};
