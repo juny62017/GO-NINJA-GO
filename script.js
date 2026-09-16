@@ -1006,3 +1006,119 @@ var updatePhysics = function(collisions) {
     }
     hero.levelY += hero.velocityY;
 };
+var updateCollectibles = function() {
+    let touchedWings = {
+        top: false,
+        topY: null,
+        bottom: false,
+        left: false,
+        right: false
+    };
+    checkSpriteTileCollision({
+        levelX: hero.levelX + 25,
+        levelY: hero.levelY,
+        spriteWidth: 50,
+        spriteHeight: hero.spriteHeight
+    }, 82 * TILE_SIZE, 13 * TILE_SIZE, 10, touchedWings);
+    if (touchedWings.top || touchedWings.bottom || touchedWings.left || touchedWings.right) {
+        if (currentLevel[13][82] == 10) {
+            points += 800;
+            currentLevel[13][82] = 0;
+        }
+        hoverjump = true;
+    }
+    let touchedCross = {
+        top: false,
+        topY: null,
+        bottom: false,
+        left: false,
+        right: false
+    };
+    checkSpriteTileCollision({
+        levelX: hero.levelX + 25,
+        levelY: hero.levelY,
+        spriteWidth: 50,
+        spriteHeight: hero.spriteHeight
+    }, 102 * TILE_SIZE, 2 * TILE_SIZE, 10, touchedCross);
+    if (touchedCross.top || touchedCross.bottom || touchedCross.left || touchedCross.right) {
+        if (currentLevel[2][102] == 12) {
+            points += 10000;
+            currentLevel[2][102] = 0;
+        }
+    }
+};
+
+var finishGameplayFrame = function() {
+    jumpPressedLastFrame = pressedKeys["87"];
+    previousHeroAnimationIndex = heroAnimationIndex;
+    if (hero.levelX + hero.spriteWidth / 2 >= TILE_SIZE * currentLevel[0].length) {
+        demoComplete = true;
+        gameStarted = false;
+    }
+    if (hero.levelY >= SCREEN_HEIGHT) {
+        gameOver = true;
+        gameStarted = false;
+    }
+};
+
+var gameLoop = function(interval) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    updateCamera();
+    drawParallax();
+    drawLevelTiles(currentLevel, currentLevel[0].length, currentLevel.length, scrollX);
+    let currentFrame = drawHero();
+    let collisions = getHeroCollisions();
+    updateMovement(collisions);
+    updateAttack(currentFrame);
+    updateJumpState();
+    updatePhysics(collisions);
+    updateCollectibles();
+    finishGameplayFrame();
+};
+
+let FPS = 60;
+let interval = 1 / FPS;
+let frameCounter = 0;
+let oldTime = Date.now();
+let previousFrameTime = oldTime;
+currentLevel = JSON.parse(JSON.stringify(levels[0]));
+
+setInterval(function() {
+    let now = Date.now();
+    if (!gameStarted) {
+        if (gameOver) {
+            if (audioPlaying) {
+                audioElement.pause();
+                audioPlaying = false;
+            }
+            gameOverScreen(now, oldTime);
+        } else if (demoComplete) {
+            demoCompleteScreen(now, oldTime);
+        } else {
+            if (audioPlaying) {
+                audioElement.pause();
+                audioPlaying = false;
+            }
+            titleScreenLoop(now, oldTime);
+        }
+    } else {
+        if (!audioPlaying) {
+            audioElement.currentTime = 0;
+            if (enterPressedInitially) {
+                audioElement.play();
+                document.removeEventListener('keypress', onInitialEnterPress);
+            }
+            audioPlaying = true;
+        }
+        gameLoop(interval);
+        context.font = "28px Luminari, fantasy";
+        context.fillStyle = "rgb(255, 247, 227)";
+        context.fillText(points + " Pts", 10, 50);
+    }
+    previousFrameTime = now;
+    frameCounter++;
+    if (now - oldTime > 1000) {
+        frameCounter = 0;
+        oldTime = Date.now();
+    }
+}, interval * 1000);
