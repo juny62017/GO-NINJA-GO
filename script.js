@@ -55,6 +55,7 @@ var scrollX = 0;
 var resetAnimationTime = Date.now();
 var previousHeroAnimationIndex = 1;
 let currentLevel = [];
+let currentLevelIndex = 0;
 let points = 0;
 let gameStarted = false;
 let gameOver = false;
@@ -511,6 +512,96 @@ var levels = [[
     levelRow13,
     levelRow14
 ]];
+
+var cloneLevel = function(level) {
+    return level.map(function(row) {
+        return row.slice();
+    });
+};
+
+var applyLevelPatches = function(level, patches) {
+    let nextLevel = cloneLevel(level);
+    for (let i = 0; i < patches.length; i++) {
+        let patch = patches[i];
+        nextLevel[patch[0]][patch[1]] = patch[2];
+    }
+    return nextLevel;
+};
+
+const levelTwoPatches = [
+    [13, 82, 0],
+    [2, 102, 0],
+    [10, 55, 10],
+    [7, 88, 12],
+    [11, 53, 1],
+    [11, 54, 1],
+    [11, 55, 1],
+    [11, 56, 1],
+    [11, 57, 1],
+    [8, 86, 1],
+    [8, 87, 1],
+    [8, 88, 1],
+    [8, 89, 1],
+    [8, 90, 1],
+    [12, 20, 1],
+    [12, 21, 1],
+    [12, 22, 1],
+    [12, 23, 1],
+    [12, 24, 1],
+    [11, 35, 1],
+    [11, 36, 1],
+    [11, 37, 1],
+    [11, 38, 1],
+    [11, 39, 1],
+    [10, 36, 1],
+    [10, 37, 1],
+    [10, 38, 1],
+    [10, 39, 1],
+    [12, 48, 1],
+    [12, 49, 1],
+    [12, 50, 1],
+    [12, 51, 1],
+    [12, 52, 1],
+    [11, 48, 1],
+    [11, 49, 1],
+    [11, 50, 1],
+    [11, 51, 1],
+    [11, 52, 1],
+    [10, 61, 1],
+    [10, 62, 1],
+    [10, 63, 1],
+    [10, 64, 1],
+    [10, 65, 1],
+    [9, 62, 1],
+    [9, 63, 1],
+    [9, 64, 1],
+    [9, 65, 1],
+    [9, 66, 1],
+    [12, 74, 1],
+    [12, 75, 1],
+    [12, 76, 1],
+    [12, 77, 1],
+    [12, 78, 1],
+    [12, 79, 1],
+    [11, 75, 1],
+    [11, 76, 1],
+    [11, 77, 1],
+    [11, 78, 1],
+    [11, 79, 1],
+    [10, 90, 1],
+    [10, 91, 1],
+    [10, 92, 1],
+    [10, 93, 1],
+    [10, 94, 1],
+    [9, 91, 1],
+    [9, 92, 1],
+    [9, 93, 1],
+    [9, 94, 1],
+];
+
+const levelTwo = applyLevelPatches(levels[0], levelTwoPatches);
+levels.push(levelTwo);
+
 const SCREEN_WIDTH = 816;
 const SCREEN_HEIGHT = 480;
 const TILE_SIZE = 32;
