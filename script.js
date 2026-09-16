@@ -911,3 +911,98 @@ var updateMovement = function(collisions) {
         else heroAnimationIndex = 8;
     }
 };
+var updateAttack = function(currentFrame) {
+    if (pressedKeys["75"]) {
+        if (heroDirection) {
+            if (currentFrame == 4 && previousHeroAnimationIndex == 7) {
+                attackCompleted = true;
+            }
+            if (attackCompleted && pressedKeys["68"]) {
+                heroAnimationIndex = 3;
+            } else if (attackCompleted && !(pressedKeys[65] || pressedKeys[68])) {
+                heroAnimationIndex = 1;
+            } else {
+                heroAnimationIndex = 7;
+            }
+        } else {
+            if (currentFrame == 0 && previousHeroAnimationIndex == 6) {
+                attackCompleted = true;
+            }
+            if (attackCompleted && pressedKeys["65"]) {
+                heroAnimationIndex = 2;
+            } else if (attackCompleted && !(pressedKeys[65] || pressedKeys[68])) {
+                heroAnimationIndex = 0;
+            } else {
+                heroAnimationIndex = 6;
+            }
+        }
+    } else {
+        attackCompleted = false;
+    }
+};
+
+var updateJumpState = function() {
+    if (pressedKeys["87"]) {
+        if (distanceFromFloor > 0 || hoverjump) {
+            if (heroDirection) heroAnimationIndex = 5;
+            else heroAnimationIndex = 4;
+        }
+        heroJumping = true;
+    } else {
+        heroJumping = false;
+        heroPeakJumping = false;
+    }
+    if (previousHeroAnimationIndex != heroAnimationIndex) {
+        resetAnimationTime = Date.now();
+    }
+};
+
+var updatePhysics = function(collisions) {
+    if (hero.velocityY >= 0 && collisions.top) {
+        nearestFloorHeight = SCREEN_HEIGHT - collisions.topY;
+    } else {
+        nearestFloorHeight = -hero.spriteHeight;
+    }
+    distanceFromFloor = SCREEN_HEIGHT - nearestFloorHeight - (hero.levelY + hero.spriteHeight);
+    if (distanceFromFloor > 0 && !(hoverjump && heroJumping)) {
+        hero.velocityY += 0.5;
+    } else {
+        hero.velocityY = 0;
+    }
+    if (distanceFromFloor <= 0) {
+        hero.levelY = SCREEN_HEIGHT - nearestFloorHeight - hero.spriteHeight;
+    }
+    if (hoverjump) {
+        if (heroJumping && !newJumpPress) {
+            newJumpPress = true;
+        } else {
+            newJumpPress = false;
+        }
+        if (newJumpPress) {
+            hero.velocityY = -4;
+        }
+    } else {
+        if (
+            heroJumping &&
+            !newJumpPress &&
+            distanceFromFloor <= 0 &&
+            !jumpPressedLastFrame
+        ) {
+            newJumpPress = true;
+        } else {
+            newJumpPress = false;
+        }
+        if (newJumpPress) {
+            hero.levelY -= 1;
+            hero.velocityY = -10;
+        }
+    }
+    if (
+        hero.velocityY > 0 && collisions.top ||
+        hero.velocityY < 0 && hero.levelY <= -10 ||
+        hero.velocityY < 0 && collisions.bottom
+    ) {
+        hero.velocityY = 0;
+    }
+    hero.levelY += hero.velocityY;
+};
