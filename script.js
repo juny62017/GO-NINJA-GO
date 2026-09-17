@@ -61,6 +61,8 @@ let points = 0;
 let gameStarted = false;
 let gameOver = false;
 let demoComplete = false;
+let levelTransition = false;
+let completedLevelIndex = 0;
 const levelRow00 = [
     0,0,0,0,
     0,0,0,0,
@@ -999,6 +1001,79 @@ var demoCompleteScreen = function(now, oldTime) {
         demoComplete = false;
     }
 };
+var continueToNextLevel = function() {
+    let nextLevelIndex = completedLevelIndex + 1;
+    loadLevel(nextLevelIndex, true);
+    levelTransition = false;
+    gameStarted = true;
+};
+
+const STAGE_PATH_START = 310;
+const STAGE_PATH_GAP = 98;
+
+var drawStagePath = function() {
+    let startX = STAGE_PATH_START;
+    let gap = STAGE_PATH_GAP;
+    let y = 335;
+    context.strokeStyle = "rgba(255, 247, 227, 0.45)";
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(startX, y);
+    context.lineTo(startX + gap * (levels.length - 1), y);
+    context.stroke();
+    for (let i = 0; i < levels.length; i++) {
+        let x = startX + gap * i;
+        context.fillStyle = i <= completedLevelIndex ?
+            "rgb(242, 131, 28)" : "rgb(255, 247, 227)";
+        context.beginPath();
+        context.arc(x, y, 18, 0, Math.PI * 2);
+        context.fill();
+        context.font = "18px Luminari, fantasy";
+        context.fillStyle = "rgb(67, 67, 67)";
+        context.textAlign = "center";
+        context.fillText(String(i + 1), x, y + 6);
+    }
+    context.textAlign = "start";
+};
+
+var levelTransitionScreen = function(now, oldTime) {
+    context.fillStyle = "rgb(67, 67, 67)";
+    context.fillRect(0, 0, 816, 480);
+    context.font = "76px Luminari, fantasy";
+    context.fillStyle = "#4BB543";
+    context.textAlign = "center";
+    context.fillText("Level " + (completedLevelIndex + 1) + " Complete", 408, 120);
+    context.font = "46px Luminari, fantasy";
+    context.fillStyle = "white";
+    context.fillText("Score: " + String(points).padStart(5, "0") + " Pts", 408, 190);
+    context.font = "38px Luminari, fantasy";
+    context.fillStyle = "rgb(242, 131, 28)";
+    context.fillText("Next: Level " + (completedLevelIndex + 2), 408, 245);
+    context.font = "34px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227, " +
+        (0.55 + 0.15 * Math.cos(2 * 3.1415 * (Math.round(now - oldTime) / 1000))) + ")";
+    context.fillText("Press Enter to Continue", 408, 300);
+    context.textAlign = "start";
+    drawStagePath();
+    let currentFrame = Math.floor(
+        ((Date.now() / 100) % heroAnimations[3][1])
+    );
+    context.drawImage(
+        heroAnimations[3][0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        SCREEN_WIDTH / 2 - 75,
+        365,
+        150,
+        59 * 1.5
+    );
+    if (pressedKeys["13"]) {
+        continueToNextLevel();
+    }
+};
+
 var updateCamera = function() {
     if (
         hero.levelX + hero.spriteWidth / 2 >= SCREEN_WIDTH / 2 &&
@@ -1284,7 +1359,9 @@ var finishGameplayFrame = function() {
     previousHeroAnimationIndex = heroAnimationIndex;
     if (hero.levelX + hero.spriteWidth / 2 >= TILE_SIZE * currentLevel[0].length) {
         if (currentLevelIndex < levels.length - 1) {
-            loadLevel(currentLevelIndex + 1, true);
+            completedLevelIndex = currentLevelIndex;
+            levelTransition = true;
+            gameStarted = false;
         } else {
             demoComplete = true;
             gameStarted = false;
@@ -1360,6 +1437,8 @@ setInterval(function() {
                 audioPlaying = false;
             }
             gameOverScreen(now, oldTime);
+        } else if (levelTransition) {
+            levelTransitionScreen(now, oldTime);
         } else if (demoComplete) {
             demoCompleteScreen(now, oldTime);
         } else {
