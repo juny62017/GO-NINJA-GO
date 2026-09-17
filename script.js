@@ -728,15 +728,59 @@ let hero = {
 };
 
 var audioElement = document.getElementById("theAudio");
+var musicToggle = document.getElementById("music-toggle");
 audioElement.load();
 audioElement.volume = 0.6;
 var audioPlaying = false;
+var musicEnabled = true;
 var enterPressedInitially = false;
 var beyondTitleScreen = false;
+
+var updateMusicToggle = function() {
+    musicToggle.textContent = musicEnabled ? "Music: ON" : "Music: OFF";
+    musicToggle.setAttribute("aria-pressed", musicEnabled ? "true" : "false");
+    musicToggle.setAttribute(
+        "aria-label",
+        musicEnabled ? "Turn music off" : "Turn music on"
+    );
+    musicToggle.classList.toggle("muted", !musicEnabled);
+};
+
+var pauseMusic = function() {
+    if (!audioElement.paused) {
+        audioElement.pause();
+    }
+    audioPlaying = false;
+};
+
+var resumeMusic = function() {
+    if (!musicEnabled || !gameStarted || !enterPressedInitially) {
+        return;
+    }
+    audioElement.play();
+    audioPlaying = true;
+};
+
+var toggleMusic = function() {
+    musicEnabled = !musicEnabled;
+    if (musicEnabled) {
+        resumeMusic();
+    } else {
+        pauseMusic();
+    }
+    updateMusicToggle();
+};
+
+musicToggle.addEventListener("click", toggleMusic);
+updateMusicToggle();
+
 onInitialEnterPress = function(e) {
     if (e.key == "Enter") {
         enterPressedInitially = true;
-        audioElement.play();
+        if (musicEnabled) {
+            audioElement.play();
+            audioPlaying = true;
+        }
     }
 };
 document.addEventListener('keypress', onInitialEnterPress);
@@ -1528,7 +1572,7 @@ setInterval(function() {
             titleScreenLoop(now, oldTime);
         }
     } else {
-        if (!audioPlaying) {
+        if (musicEnabled && !audioPlaying) {
             audioElement.currentTime = 0;
             if (enterPressedInitially) {
                 audioElement.play();
