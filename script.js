@@ -597,6 +597,18 @@ const levelTwoPatches = [
     [9, 92, 1],
     [9, 93, 1],
     [9, 94, 1],
+    [6, 96, 1],
+    [6, 97, 1],
+    [6, 98, 1],
+    [6, 99, 1],
+    [6, 100, 1],
+    [6, 101, 1],
+    [5, 96, 1],
+    [5, 97, 1],
+    [5, 98, 1],
+    [5, 99, 1],
+    [5, 100, 1],
+    [5, 101, 1],
 ];
 
 const levelTwo = applyLevelPatches(levels[0], levelTwoPatches);
@@ -1097,8 +1109,25 @@ var updatePhysics = function(collisions) {
     }
     hero.levelY += hero.velocityY;
 };
-var updateCollectibles = function() {
-    let touchedWings = {
+var getSpecialTiles = function(level) {
+    let specialTiles = [];
+    for (let row = 0; row < level.length; row++) {
+        for (let column = 0; column < level[row].length; column++) {
+            let tile = level[row][column];
+            if (tile == 10 || tile == 12) {
+                specialTiles.push({
+                    row: row,
+                    column: column,
+                    tile: tile
+                });
+            }
+        }
+    }
+    return specialTiles;
+};
+
+var heroTouchesTile = function(row, column, tile) {
+    let touched = {
         top: false,
         topY: null,
         bottom: false,
@@ -1110,32 +1139,31 @@ var updateCollectibles = function() {
         levelY: hero.levelY,
         spriteWidth: 50,
         spriteHeight: hero.spriteHeight
-    }, 82 * TILE_SIZE, 13 * TILE_SIZE, 10, touchedWings);
-    if (touchedWings.top || touchedWings.bottom || touchedWings.left || touchedWings.right) {
-        if (currentLevel[13][82] == 10) {
-            points += 800;
-            currentLevel[13][82] = 0;
-        }
+    }, column * TILE_SIZE, row * TILE_SIZE, tile, touched);
+    return touched.top || touched.bottom || touched.left || touched.right;
+};
+
+var collectSpecialTile = function(item) {
+    if (!heroTouchesTile(item.row, item.column, item.tile)) {
+        return;
+    }
+    if (currentLevel[item.row][item.column] != item.tile) {
+        return;
+    }
+    if (item.tile == 10) {
+        points += 800;
         hoverjump = true;
     }
-    let touchedCross = {
-        top: false,
-        topY: null,
-        bottom: false,
-        left: false,
-        right: false
-    };
-    checkSpriteTileCollision({
-        levelX: hero.levelX + 25,
-        levelY: hero.levelY,
-        spriteWidth: 50,
-        spriteHeight: hero.spriteHeight
-    }, 102 * TILE_SIZE, 2 * TILE_SIZE, 10, touchedCross);
-    if (touchedCross.top || touchedCross.bottom || touchedCross.left || touchedCross.right) {
-        if (currentLevel[2][102] == 12) {
-            points += 10000;
-            currentLevel[2][102] = 0;
-        }
+    if (item.tile == 12) {
+        points += 10000;
+    }
+    currentLevel[item.row][item.column] = 0;
+};
+
+var updateCollectibles = function() {
+    let specialTiles = getSpecialTiles(currentLevel);
+    for (let i = 0; i < specialTiles.length; i++) {
+        collectSpecialTile(specialTiles[i]);
     }
 };
 
