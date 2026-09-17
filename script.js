@@ -63,6 +63,8 @@ let gameOver = false;
 let demoComplete = false;
 let levelTransition = false;
 let completedLevelIndex = 0;
+let runComplete = false;
+let finalScore = 0;
 const levelRow00 = [
     0,0,0,0,
     0,0,0,0,
@@ -1074,6 +1076,79 @@ var levelTransitionScreen = function(now, oldTime) {
     }
 };
 
+var restartAdventure = function() {
+    runComplete = false;
+    demoComplete = false;
+    levelTransition = false;
+    completedLevelIndex = 0;
+    finalScore = 0;
+    resetGame();
+    levelNoticeUntil = Date.now() + 1600;
+    gameStarted = true;
+};
+
+var drawVictoryHero = function() {
+    let animation = heroAnimations[3];
+    let currentFrame = Math.floor(
+        ((Date.now() / 100) % animation[1])
+    );
+    context.drawImage(
+        animation[0],
+        currentFrame * hero.spriteWidth,
+        0,
+        hero.spriteWidth,
+        hero.spriteHeight,
+        SCREEN_WIDTH / 2 - 75,
+        365,
+        150,
+        59 * 1.5
+    );
+};
+
+var drawVictorySummary = function() {
+    context.font = "42px Luminari, fantasy";
+    context.fillStyle = "white";
+    context.textAlign = "center";
+    context.fillText(levels.length + " Levels Cleared", 408, 205);
+    context.font = "48px Luminari, fantasy";
+    context.fillStyle = "rgb(242, 131, 28)";
+    context.fillText("Final Score: " + String(finalScore).padStart(5, "0"), 408, 265);
+    context.textAlign = "start";
+    drawStagePath();
+};
+
+const VICTORY_ACCENT_RADIUS = 7;
+
+var drawVictoryAccents = function() {
+    let accentPoints = [[125, 90], [175, 145], [641, 145], [691, 90]];
+    context.fillStyle = "rgb(242, 131, 28)";
+    for (let i = 0; i < accentPoints.length; i++) {
+        context.beginPath();
+        context.arc(accentPoints[i][0], accentPoints[i][1], VICTORY_ACCENT_RADIUS, 0, Math.PI * 2);
+        context.fill();
+    }
+};
+
+var victoryScreen = function(now, oldTime) {
+    context.fillStyle = "rgb(67, 67, 67)";
+    context.fillRect(0, 0, 816, 480);
+    drawVictoryAccents();
+    context.font = "68px Luminari, fantasy";
+    context.fillStyle = "#4BB543";
+    context.textAlign = "center";
+    context.fillText("Adventure Complete", 408, 115);
+    drawVictorySummary();
+    context.font = "32px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227, " +
+        (0.55 + 0.15 * Math.cos(2 * 3.1415 * (Math.round(now - oldTime) / 1000))) + ")";
+    context.fillText("Press Enter to Play Again", 408, 310);
+    context.textAlign = "start";
+    drawVictoryHero();
+    if (pressedKeys["13"]) {
+        restartAdventure();
+    }
+};
+
 var updateCamera = function() {
     if (
         hero.levelX + hero.spriteWidth / 2 >= SCREEN_WIDTH / 2 &&
@@ -1363,7 +1438,9 @@ var finishGameplayFrame = function() {
             levelTransition = true;
             gameStarted = false;
         } else {
-            demoComplete = true;
+            completedLevelIndex = currentLevelIndex;
+            finalScore = points;
+            runComplete = true;
             gameStarted = false;
         }
     }
@@ -1439,6 +1516,8 @@ setInterval(function() {
             gameOverScreen(now, oldTime);
         } else if (levelTransition) {
             levelTransitionScreen(now, oldTime);
+        } else if (runComplete) {
+            victoryScreen(now, oldTime);
         } else if (demoComplete) {
             demoCompleteScreen(now, oldTime);
         } else {
