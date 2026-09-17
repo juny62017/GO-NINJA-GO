@@ -56,6 +56,7 @@ var resetAnimationTime = Date.now();
 var previousHeroAnimationIndex = 1;
 let currentLevel = [];
 let currentLevelIndex = 0;
+let levelNoticeUntil = 0;
 let points = 0;
 let gameStarted = false;
 let gameOver = false;
@@ -614,6 +615,96 @@ const levelTwoPatches = [
 const levelTwo = applyLevelPatches(levels[0], levelTwoPatches);
 levels.push(levelTwo);
 
+const levelThreePatches = [
+    [13, 82, 0],
+    [2, 102, 0],
+    [9, 65, 10],
+    [5, 95, 12],
+    [12, 18, 1],
+    [12, 19, 1],
+    [12, 20, 1],
+    [12, 21, 1],
+    [12, 22, 1],
+    [11, 20, 1],
+    [11, 21, 1],
+    [11, 22, 1],
+    [11, 23, 1],
+    [11, 24, 1],
+    [10, 28, 1],
+    [10, 29, 1],
+    [10, 30, 1],
+    [10, 31, 1],
+    [10, 32, 1],
+    [9, 36, 1],
+    [9, 37, 1],
+    [9, 38, 1],
+    [9, 39, 1],
+    [9, 40, 1],
+    [8, 46, 1],
+    [8, 47, 1],
+    [8, 48, 1],
+    [8, 49, 1],
+    [8, 50, 1],
+    [7, 56, 1],
+    [7, 57, 1],
+    [7, 58, 1],
+    [7, 59, 1],
+    [7, 60, 1],
+    [6, 64, 1],
+    [6, 65, 1],
+    [6, 66, 1],
+    [6, 67, 1],
+    [6, 68, 1],
+    [5, 72, 1],
+    [5, 73, 1],
+    [5, 74, 1],
+    [5, 75, 1],
+    [5, 76, 1],
+    [4, 80, 1],
+    [4, 81, 1],
+    [4, 82, 1],
+    [4, 83, 1],
+    [4, 84, 1],
+    [8, 82, 1],
+    [8, 83, 1],
+    [8, 84, 1],
+    [8, 85, 1],
+    [8, 86, 1],
+    [7, 90, 1],
+    [7, 91, 1],
+    [7, 92, 1],
+    [7, 93, 1],
+    [7, 94, 1],
+    [6, 96, 1],
+    [6, 97, 1],
+    [6, 98, 1],
+    [6, 99, 1],
+    [6, 100, 1],
+    [14, 12, 0],
+    [14, 13, 0],
+    [14, 38, 0],
+    [14, 39, 0],
+    [14, 58, 0],
+    [14, 59, 0],
+    [14, 69, 0],
+    [14, 70, 0],
+    [14, 95, 0],
+    [14, 96, 0],
+    [13, 12, 1],
+    [13, 13, 1],
+    [13, 38, 1],
+    [13, 39, 1],
+    [13, 58, 1],
+    [13, 59, 1],
+    [13, 69, 1],
+    [13, 70, 1],
+    [13, 95, 1],
+    [13, 96, 1],
+];
+
+const levelThree = applyLevelPatches(levels[0], levelThreePatches);
+levels.push(levelThree);
+
 const SCREEN_WIDTH = 816;
 const SCREEN_HEIGHT = 480;
 const TILE_SIZE = 32;
@@ -765,7 +856,7 @@ var checkSpriteTileCollisions = function(sprite, level) {
     return collisions;
 };
 
-var resetGame = function() {
+var resetHeroForLevel = function() {
     hero = {
         spriteWidth: 100,
         spriteHeight: 59,
@@ -775,25 +866,33 @@ var resetGame = function() {
         renderY: 480 - 32 - 59,
         velocityY: 0
     };
-    currentLevel = JSON.parse(JSON.stringify(levels[0]));
     scrollX = 0;
-    points = 0;
     hoverjump = false;
     heroAnimationIndex = 1;
     heroDirection = 1;
     heroJumping = false;
     heroPeakJumping = false;
     jumpPressedLastFrame = false;
-    hoverjump = false;
-    scrollX = 0;
     resetAnimationTime = Date.now();
     previousHeroAnimationIndex = 1;
-    points = 0;
     distanceFromFloor = 0;
     nearestFloorHeight = -59;
     newJumpPress = false;
     attackCompleted = false;
 };
+
+var loadLevel = function(index, showNotice) {
+    currentLevelIndex = index;
+    currentLevel = cloneLevel(levels[currentLevelIndex]);
+    resetHeroForLevel();
+    levelNoticeUntil = showNotice ? Date.now() + 1600 : 0;
+};
+
+var resetGame = function() {
+    points = 0;
+    loadLevel(0, false);
+};
+
 var titleScreenLoop = function(now, oldTime) {
     var sx = 0;
     var sy = 0;
@@ -942,6 +1041,19 @@ var drawParallax = function() {
             );
         }
     }
+};
+
+var drawLevelNotice = function() {
+    if (Date.now() >= levelNoticeUntil) {
+        return;
+    }
+    context.fillStyle = "rgba(0, 0, 0, 0.35)";
+    context.fillRect(280, 185, 256, 80);
+    context.font = "48px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227)";
+    context.textAlign = "center";
+    context.fillText("Level " + (currentLevelIndex + 1), 408, 240);
+    context.textAlign = "start";
 };
 
 var drawHero = function() {
@@ -1171,8 +1283,12 @@ var finishGameplayFrame = function() {
     jumpPressedLastFrame = pressedKeys["87"];
     previousHeroAnimationIndex = heroAnimationIndex;
     if (hero.levelX + hero.spriteWidth / 2 >= TILE_SIZE * currentLevel[0].length) {
-        demoComplete = true;
-        gameStarted = false;
+        if (currentLevelIndex < levels.length - 1) {
+            loadLevel(currentLevelIndex + 1, true);
+        } else {
+            demoComplete = true;
+            gameStarted = false;
+        }
     }
     if (hero.levelY >= SCREEN_HEIGHT) {
         gameOver = true;
@@ -1180,11 +1296,44 @@ var finishGameplayFrame = function() {
     }
 };
 
+const LEVEL_HUD_LEFT = 10;
+const LEVEL_HUD_WIDTH = 796;
+const LEVEL_HUD_Y = 62;
+
+var getLevelProgress = function() {
+    let levelWidth = currentLevel[0].length * TILE_SIZE;
+    let centerX = hero.levelX + hero.spriteWidth / 2;
+    let progress = centerX / levelWidth;
+    if (progress < 0) {
+        progress = 0;
+    }
+    if (progress > 1) {
+        progress = 1;
+    }
+    return progress;
+};
+
+var drawLevelHud = function() {
+    let progress = getLevelProgress();
+    context.font = "28px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227)";
+    context.fillText(points + " Pts", 10, 50);
+    context.fillText("Level " + (currentLevelIndex + 1), 690, 50);
+    context.fillStyle = "rgba(0, 0, 0, 0.4)";
+    context.fillRect(LEVEL_HUD_LEFT, LEVEL_HUD_Y, LEVEL_HUD_WIDTH, 8);
+    context.fillStyle = "rgb(242, 131, 28)";
+    context.fillRect(LEVEL_HUD_LEFT, LEVEL_HUD_Y, LEVEL_HUD_WIDTH * progress, 8);
+    context.beginPath();
+    context.arc(LEVEL_HUD_LEFT + LEVEL_HUD_WIDTH * progress, LEVEL_HUD_Y + 4, 6, 0, Math.PI * 2);
+    context.fill();
+};
+
 var gameLoop = function(interval) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     updateCamera();
     drawParallax();
     drawLevelTiles(currentLevel, currentLevel[0].length, currentLevel.length, scrollX);
+    drawLevelNotice();
     let currentFrame = drawHero();
     let collisions = getHeroCollisions();
     updateMovement(collisions);
@@ -1200,7 +1349,7 @@ let interval = 1 / FPS;
 let frameCounter = 0;
 let oldTime = Date.now();
 let previousFrameTime = oldTime;
-currentLevel = JSON.parse(JSON.stringify(levels[0]));
+loadLevel(0, false);
 
 setInterval(function() {
     let now = Date.now();
@@ -1230,9 +1379,7 @@ setInterval(function() {
             audioPlaying = true;
         }
         gameLoop(interval);
-        context.font = "28px Luminari, fantasy";
-        context.fillStyle = "rgb(255, 247, 227)";
-        context.fillText(points + " Pts", 10, 50);
+        drawLevelHud();
     }
     previousFrameTime = now;
     frameCounter++;
