@@ -761,7 +761,7 @@ function resumeMusic() {
     audioPlaying = true;
 };
 
-var toggleMusic = function() {
+function toggleMusic() {
     musicEnabled = !musicEnabled;
     if (musicEnabled) {
         resumeMusic();
@@ -802,7 +802,7 @@ function drawTile(x, y, tileIndex) {
     );
 };
 
-var drawLevelTiles = function(level, hTiles, vTiles, scrollPosition) {
+function drawLevelTiles(level, hTiles, vTiles, scrollPosition) {
     for (var i = 0; i < hTiles; i++) {
         for (var j = 0; j < vTiles; j++) {
             if (level[j][i] == 1) {
@@ -1739,6 +1739,72 @@ function animationFrame(now) {
     }
     requestAnimationFrame(animationFrame);
 }
+
+const jumpAssist = {
+    coyoteSeconds: 0.11,
+    bufferSeconds: 0.13,
+    lastGroundedAt: 0,
+    lastPressedAt: -1,
+    keyWasDown: false,
+    shortHopSpeed: -4.5,
+    fullJumpSpeed: -10
+};
+
+function heroIsGrounded() {
+    return distanceFromFloor <= 1 && hero.velocityY >= 0;
+}
+
+function rememberJumpInput() {
+    const jumpDown = Boolean(pressedKeys[87]);
+    if (jumpDown && !jumpAssist.keyWasDown) {
+        jumpAssist.lastPressedAt = gameState.elapsedSeconds;
+    }
+    jumpAssist.keyWasDown = jumpDown;
+}
+
+function canUseCoyoteJump() {
+    return gameState.elapsedSeconds - jumpAssist.lastGroundedAt <= jumpAssist.coyoteSeconds;
+}
+
+function hasBufferedJump() {
+    return gameState.elapsedSeconds - jumpAssist.lastPressedAt <= jumpAssist.bufferSeconds;
+}
+
+function consumeBufferedJump() {
+    if (!hasBufferedJump()) {
+        return false;
+    }
+    if (!heroIsGrounded() && !canUseCoyoteJump()) {
+        return false;
+    }
+    hero.velocityY = jumpAssist.fullJumpSpeed;
+    hero.levelY -= 1;
+    heroJumping = true;
+    jumpAssist.lastPressedAt = -1;
+    return true;
+}
+
+function applyShortHop() {
+    if (!pressedKeys[87] && hero.velocityY < jumpAssist.shortHopSpeed) {
+        hero.velocityY = jumpAssist.shortHopSpeed;
+    }
+}
+
+function updateJumpAssist() {
+    rememberJumpInput();
+    if (heroIsGrounded()) {
+        jumpAssist.lastGroundedAt = gameState.elapsedSeconds;
+    }
+    consumeBufferedJump();
+    applyShortHop();
+}
+
+resetHooks.push(function() {
+    jumpAssist.lastGroundedAt = 0;
+    jumpAssist.lastPressedAt = -1;
+    jumpAssist.keyWasDown = false;
+});
+updateHooks.push(updateJumpAssist);
 
 let FPS = 60;
 let interval = 1 / FPS;
