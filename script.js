@@ -833,7 +833,7 @@ function drawLevelTiles(level, hTiles, vTiles, scrollPosition) {
         }
     }
 };
-var checkSpriteTileCollision = function(sprite, tileX, tileY, tileIndex, collisions) {
+function checkSpriteTileCollision(sprite, tileX, tileY, tileIndex, collisions) {
     if (
         sprite.levelX + sprite.spriteWidth >= tileX &&
         sprite.levelX <= tileX + TILE_SIZE &&
@@ -1805,6 +1805,80 @@ resetHooks.push(function() {
     jumpAssist.keyWasDown = false;
 });
 updateHooks.push(updateJumpAssist);
+
+function getHeroCollisionBox() {
+    return {
+        levelX: hero.levelX + 25,
+        levelY: hero.levelY + 2,
+        spriteWidth: 50,
+        spriteHeight: hero.spriteHeight - 2
+    };
+}
+
+function getNearbyTiles(sprite, level) {
+    const left = Math.max(0, Math.floor(sprite.levelX / TILE_SIZE) - 1);
+    const right = Math.min(
+        level[0].length - 1,
+        Math.floor((sprite.levelX + sprite.spriteWidth) / TILE_SIZE) + 1
+    );
+    const top = Math.max(0, Math.floor(sprite.levelY / TILE_SIZE) - 1);
+    const bottom = Math.min(
+        level.length - 1,
+        Math.floor((sprite.levelY + sprite.spriteHeight) / TILE_SIZE) + 1
+    );
+    const nearby = [];
+    for (let row = top; row <= bottom; row++) {
+        for (let column = left; column <= right; column++) {
+            if (level[row][column] != 0) {
+                nearby.push({
+                    row: row,
+                    column: column,
+                    tile: level[row][column]
+                });
+            }
+        }
+    }
+    return nearby;
+}
+
+function emptyCollisionResult() {
+    return {
+        left: false,
+        right: false,
+        top: false,
+        bottom: false,
+        topY: null
+    };
+}
+
+function getStableHeroCollisions() {
+    const sprite = getHeroCollisionBox();
+    const collisions = emptyCollisionResult();
+    const nearby = getNearbyTiles(sprite, currentLevel);
+    for (let i = 0; i < nearby.length; i++) {
+        const item = nearby[i];
+        checkSpriteTileCollision(
+            sprite,
+            item.column * TILE_SIZE,
+            item.row * TILE_SIZE,
+            item.tile,
+            collisions
+        );
+    }
+    return collisions;
+}
+
+function keepHeroInsideLevel() {
+    const levelWidth = currentLevel[0].length * TILE_SIZE;
+    hero.levelX = Math.max(-25, Math.min(hero.levelX, levelWidth - hero.spriteWidth / 2));
+    if (hero.levelY < -10) {
+        hero.levelY = -10;
+        hero.velocityY = Math.max(0, hero.velocityY);
+    }
+}
+
+getHeroCollisions = getStableHeroCollisions;
+updateHooks.push(keepHeroInsideLevel);
 
 let FPS = 60;
 let interval = 1 / FPS;
