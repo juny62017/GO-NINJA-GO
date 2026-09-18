@@ -753,7 +753,7 @@ function pauseMusic() {
     audioPlaying = false;
 };
 
-var resumeMusic = function() {
+function resumeMusic() {
     if (!musicEnabled || !gameStarted || !enterPressedInitially) {
         return;
     }
@@ -1680,21 +1680,28 @@ resetGame = function() {
 updateHooks.push(updateRestartInput);
 hudHooks.push(drawRestartHint);
 
-let FPS = 60;
-let interval = 1 / FPS;
-let frameCounter = 0;
-let oldTime = Date.now();
-let previousFrameTime = oldTime;
-loadLevel(0, false);
+const frameState = {
+    previousTime: performance.now(),
+    accumulator: 0,
+    step: 1 / 60,
+    maxFrame: 0.05,
+    renderedFrames: 0
+};
 
-setInterval(function() {
-    let now = Date.now();
+function getFrameSeconds(now) {
+    let seconds = (now - frameState.previousTime) / 1000;
+    frameState.previousTime = now;
+    if (!Number.isFinite(seconds) || seconds < 0) {
+        return frameState.step;
+    }
+    return Math.min(seconds, frameState.maxFrame);
+}
+
+function updateGameScreen(now, seconds) {
+    syncGameState();
     if (!gameStarted) {
         if (gameOver) {
-            if (audioPlaying) {
-                audioElement.pause();
-                audioPlaying = false;
-            }
+            pauseMusic();
             gameOverScreen(now, oldTime);
         } else if (levelTransition) {
             levelTransitionScreen(now, oldTime);
@@ -1703,29 +1710,40 @@ setInterval(function() {
         } else if (demoComplete) {
             demoCompleteScreen(now, oldTime);
         } else {
-            if (audioPlaying) {
-                audioElement.pause();
-                audioPlaying = false;
-            }
+            pauseMusic();
             titleScreenLoop(now, oldTime);
         }
-    } else {
-        if (musicEnabled && !audioPlaying) {
-            audioElement.currentTime = 0;
-            if (enterPressedInitially) {
-                audioElement.play();
-                document.removeEventListener('keypress', onInitialEnterPress);
-            }
-            audioPlaying = true;
-        }
-        gameLoop(interval);
-        drawLevelHud();
-        runHudHooks();
+        return;
     }
+    if (musicEnabled && !audioPlaying && enterPressedInitially) {
+        resumeMusic();
+    }
+    interval = seconds;
+    gameLoop(seconds);
+    drawLevelHud();
+    runHudHooks();
+}
+
+function animationFrame(now) {
+    const seconds = getFrameSeconds(now);
+    gameState.elapsedSeconds += seconds;
+    gameState.frameNumber += 1;
+    frameState.accumulator += seconds;
+    updateGameScreen(now, seconds);
     previousFrameTime = now;
-    frameCounter++;
+    frameCounter += 1;
+    frameState.renderedFrames += 1;
     if (now - oldTime > 1000) {
         frameCounter = 0;
-        oldTime = Date.now();
+        oldTime = now;
     }
-}, interval * 1000);
+    requestAnimationFrame(animationFrame);
+}
+
+let FPS = 60;
+let interval = 1 / FPS;
+let frameCounter = 0;
+let oldTime = performance.now();
+let previousFrameTime = oldTime;
+loadLevel(0, false);
+requestAnimationFrame(animationFrame);
