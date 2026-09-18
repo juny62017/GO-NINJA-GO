@@ -736,7 +736,7 @@ var musicEnabled = true;
 var enterPressedInitially = false;
 var beyondTitleScreen = false;
 
-var updateMusicToggle = function() {
+function updateMusicToggle() {
     musicToggle.textContent = musicEnabled ? "Music: ON" : "Music: OFF";
     musicToggle.setAttribute("aria-pressed", musicEnabled ? "true" : "false");
     musicToggle.setAttribute(
@@ -746,7 +746,7 @@ var updateMusicToggle = function() {
     musicToggle.classList.toggle("muted", !musicEnabled);
 };
 
-var pauseMusic = function() {
+function pauseMusic() {
     if (!audioElement.paused) {
         audioElement.pause();
     }
@@ -1612,6 +1612,73 @@ document.addEventListener("visibilitychange", function() {
         clearInputState();
     }
 });
+
+const restartState = {
+    keyWasDown: false,
+    lastRestartAt: 0,
+    count: 0
+};
+
+function resetAdventureState() {
+    clearInputState();
+    gameOver = false;
+    demoComplete = false;
+    levelTransition = false;
+    runComplete = false;
+    completedLevelIndex = 0;
+    finalScore = 0;
+    points = 0;
+    scrollX = 0;
+    hoverjump = false;
+    attackCompleted = false;
+    currentLevelIndex = 0;
+    currentLevel = cloneLevel(levels[0]);
+    resetHeroForLevel();
+    levelNoticeUntil = Date.now() + 1200;
+    gameStarted = true;
+    beyondTitleScreen = true;
+    enterPressedInitially = true;
+    gameState.restarting = false;
+    gameState.levelStartedAt = performance.now();
+    setGameScreen("playing");
+    runResetHooks();
+}
+
+function restartCurrentRun() {
+    if (gameState.restarting) {
+        return;
+    }
+    gameState.restarting = true;
+    restartState.lastRestartAt = Date.now();
+    restartState.count += 1;
+    resetAdventureState();
+}
+
+function updateRestartInput() {
+    const restartDown = Boolean(pressedKeys[27]);
+    if (restartDown && !restartState.keyWasDown) {
+        restartCurrentRun();
+    }
+    restartState.keyWasDown = restartDown;
+}
+
+function drawRestartHint() {
+    if (!gameStarted) {
+        return;
+    }
+    context.font = "14px Arial, sans-serif";
+    context.fillStyle = "rgba(255, 247, 227, 0.75)";
+    context.textAlign = "right";
+    context.fillText("ESC Restart", SCREEN_WIDTH - 12, SCREEN_HEIGHT - 12);
+    context.textAlign = "start";
+}
+
+restartAdventure = restartCurrentRun;
+resetGame = function() {
+    resetAdventureState();
+};
+updateHooks.push(updateRestartInput);
+hudHooks.push(drawRestartHint);
 
 let FPS = 60;
 let interval = 1 / FPS;
