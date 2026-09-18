@@ -785,7 +785,7 @@ onInitialEnterPress = function(e) {
 };
 document.addEventListener('keypress', onInitialEnterPress);
 
-var drawTile = function(x, y, tileIndex) {
+function drawTile(x, y, tileIndex) {
     var sx = tileIndex * 32 -
         64 * Math.floor(tileIndex / 64) * 32;
     var sy = Math.floor(tileIndex / 64) * 32;
@@ -1540,7 +1540,78 @@ var gameLoop = function(interval) {
     updatePhysics(collisions);
     updateCollectibles();
     finishGameplayFrame();
+    runUpdateHooks(interval);
 };
+
+const gameState = {
+    screen: "title",
+    started: false,
+    paused: false,
+    restarting: false,
+    inputLocked: false,
+    frameNumber: 0,
+    elapsedSeconds: 0,
+    lastFrameTime: performance.now(),
+    levelStartedAt: performance.now()
+};
+
+const updateHooks = [];
+const hudHooks = [];
+const resetHooks = [];
+
+function clearInputState() {
+    Object.keys(pressedKeys).forEach(function(key) {
+        pressedKeys[key] = false;
+    });
+    jumpPressedLastFrame = false;
+    newJumpPress = false;
+}
+
+function setGameScreen(screen) {
+    gameState.screen = screen;
+    gameState.inputLocked = screen == "transition";
+    gameState.paused = screen == "paused";
+}
+
+function syncGameState() {
+    gameState.started = gameStarted;
+    if (gameOver) {
+        setGameScreen("game-over");
+    } else if (levelTransition) {
+        setGameScreen("transition");
+    } else if (runComplete) {
+        setGameScreen("victory");
+    } else if (gameStarted) {
+        setGameScreen("playing");
+    } else {
+        setGameScreen("title");
+    }
+}
+
+function runUpdateHooks(seconds) {
+    for (let i = 0; i < updateHooks.length; i++) {
+        updateHooks[i](seconds);
+    }
+}
+
+function runHudHooks() {
+    for (let i = 0; i < hudHooks.length; i++) {
+        hudHooks[i]();
+    }
+}
+
+function runResetHooks() {
+    for (let i = 0; i < resetHooks.length; i++) {
+        resetHooks[i]();
+    }
+}
+
+window.addEventListener("blur", clearInputState);
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        clearInputState();
+    }
+});
 
 let FPS = 60;
 let interval = 1 / FPS;
@@ -1582,6 +1653,7 @@ setInterval(function() {
         }
         gameLoop(interval);
         drawLevelHud();
+        runHudHooks();
     }
     previousFrameTime = now;
     frameCounter++;
