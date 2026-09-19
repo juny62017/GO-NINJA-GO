@@ -1082,7 +1082,7 @@ function drawStagePath() {
     context.textAlign = "start";
 };
 
-var levelTransitionScreen = function(now, oldTime) {
+function levelTransitionScreen(now, oldTime) {
     context.fillStyle = "rgb(67, 67, 67)";
     context.fillRect(0, 0, 816, 480);
     context.font = "76px Luminari, fantasy";
@@ -2145,6 +2145,80 @@ function resetAttackState() {
 
 updateHooks.push(updateAttackHitbox);
 resetHooks.push(resetAttackState);
+
+const scoreState = {
+    combo: 0,
+    comboUntil: 0,
+    collected: 0,
+    bonus: 0,
+    levelStartedAt: performance.now(),
+    lastAward: 0
+};
+
+function beginScoreCombo() {
+    const now = performance.now();
+    if (now <= scoreState.comboUntil) {
+        scoreState.combo += 1;
+    } else {
+        scoreState.combo = 1;
+    }
+    scoreState.comboUntil = now + 1800;
+}
+
+function awardCollectibleScore(basePoints) {
+    beginScoreCombo();
+    const multiplier = Math.min(4, scoreState.combo);
+    const award = basePoints * multiplier;
+    const extra = award - basePoints;
+    points += extra;
+    scoreState.bonus += extra;
+    scoreState.collected += 1;
+    scoreState.lastAward = award;
+}
+
+const collectSpecialTileBeforeScore = collectSpecialTile;
+collectSpecialTile = function(item) {
+    const tileBefore = currentLevel[item.row][item.column];
+    const pointsBefore = points;
+    collectSpecialTileBeforeScore(item);
+    if (tileBefore != 0 && currentLevel[item.row][item.column] == 0) {
+        awardCollectibleScore(points - pointsBefore);
+    }
+};
+
+function updateScoreSystem() {
+    if (scoreState.combo > 0 && performance.now() > scoreState.comboUntil) {
+        scoreState.combo = 0;
+    }
+}
+
+function getRunSeconds() {
+    return Math.max(0, (performance.now() - scoreState.levelStartedAt) / 1000);
+}
+
+function drawScoreDetails() {
+    context.font = "18px Arial, sans-serif";
+    context.fillStyle = "rgba(255, 247, 227, 0.9)";
+    context.fillText("Items " + scoreState.collected, 10, 126);
+    context.fillText("Time " + getRunSeconds().toFixed(1), 10, 148);
+    if (scoreState.combo > 1) {
+        context.fillStyle = "rgb(242, 131, 28)";
+        context.fillText("Combo x" + scoreState.combo, 10, 170);
+    }
+}
+
+function resetScoreState() {
+    scoreState.combo = 0;
+    scoreState.comboUntil = 0;
+    scoreState.collected = 0;
+    scoreState.bonus = 0;
+    scoreState.lastAward = 0;
+    scoreState.levelStartedAt = performance.now();
+}
+
+updateHooks.push(updateScoreSystem);
+hudHooks.push(drawScoreDetails);
+resetHooks.push(resetScoreState);
 
 let FPS = 60;
 let interval = 1 / FPS;
