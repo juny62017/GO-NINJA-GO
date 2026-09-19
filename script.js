@@ -1014,7 +1014,7 @@ function gameOverScreen(now, oldTime) {
     }
 };
 
-var demoCompleteScreen = function(now, oldTime) {
+function demoCompleteScreen(now, oldTime) {
     context.fillStyle = "rgb(67, 67, 67)";
     context.fillRect(0, 0, 816, 480);
     context.font = "90px Luminari, fantasy";
@@ -1938,6 +1938,74 @@ updateCamera = function() {
 };
 
 resetHooks.push(resetCameraState);
+
+const checkpointState = {
+    level: 0,
+    x: 140,
+    y: 389,
+    progressStep: 0,
+    noticeUntil: 0
+};
+
+function saveCheckpoint(step) {
+    checkpointState.level = currentLevelIndex;
+    checkpointState.x = hero.levelX;
+    checkpointState.y = hero.levelY;
+    checkpointState.progressStep = step;
+    checkpointState.noticeUntil = performance.now() + 1100;
+}
+
+function updateCheckpoint() {
+    if (!gameStarted || gameOver || levelTransition) {
+        return;
+    }
+    const progress = getLevelProgress();
+    let step = 0;
+    if (progress >= 0.66) {
+        step = 2;
+    } else if (progress >= 0.33) {
+        step = 1;
+    }
+    if (step > checkpointState.progressStep) {
+        saveCheckpoint(step);
+    }
+}
+
+function restoreCheckpoint() {
+    if (checkpointState.level != currentLevelIndex) {
+        return false;
+    }
+    hero.levelX = checkpointState.x;
+    hero.levelY = checkpointState.y;
+    hero.velocityY = 0;
+    heroJumping = false;
+    heroPeakJumping = false;
+    clearInputState();
+    return true;
+}
+
+function resetCheckpoint() {
+    checkpointState.level = currentLevelIndex;
+    checkpointState.x = 140;
+    checkpointState.y = SCREEN_HEIGHT - TILE_SIZE - hero.spriteHeight;
+    checkpointState.progressStep = 0;
+    checkpointState.noticeUntil = 0;
+}
+
+function drawCheckpointNotice() {
+    if (performance.now() >= checkpointState.noticeUntil) {
+        return;
+    }
+    context.font = "22px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227)";
+    context.textAlign = "center";
+    context.fillText("Checkpoint", SCREEN_WIDTH / 2, 105);
+    context.textAlign = "start";
+}
+
+updateHooks.push(updateCheckpoint);
+hudHooks.push(drawCheckpointNotice);
+resetHooks.push(resetCheckpoint);
 
 let FPS = 60;
 let interval = 1 / FPS;
