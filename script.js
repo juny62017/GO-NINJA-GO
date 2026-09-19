@@ -1047,7 +1047,7 @@ function demoCompleteScreen(now, oldTime) {
         demoComplete = false;
     }
 };
-var continueToNextLevel = function() {
+function continueToNextLevel() {
     let nextLevelIndex = completedLevelIndex + 1;
     loadLevel(nextLevelIndex, true);
     levelTransition = false;
@@ -2006,6 +2006,76 @@ function drawCheckpointNotice() {
 updateHooks.push(updateCheckpoint);
 hudHooks.push(drawCheckpointNotice);
 resetHooks.push(resetCheckpoint);
+
+const healthState = {
+    maximum: 3,
+    current: 3,
+    invulnerableUntil: 0,
+    flashUntil: 0,
+    deaths: 0
+};
+
+function heroCanTakeDamage() {
+    return performance.now() >= healthState.invulnerableUntil;
+}
+
+function damageHero(amount) {
+    if (!heroCanTakeDamage()) {
+        return false;
+    }
+    healthState.current = Math.max(0, healthState.current - amount);
+    healthState.invulnerableUntil = performance.now() + 900;
+    healthState.flashUntil = performance.now() + 500;
+    hero.velocityY = -5;
+    if (healthState.current == 0) {
+        healthState.deaths += 1;
+        gameOver = true;
+        gameStarted = false;
+        return true;
+    }
+    restoreCheckpoint();
+    gameOver = false;
+    gameStarted = true;
+    return true;
+}
+
+function updateHealthState() {
+    if (hero.levelY < SCREEN_HEIGHT) {
+        return;
+    }
+    damageHero(1);
+}
+
+function heroShouldFlash() {
+    if (performance.now() >= healthState.flashUntil) {
+        return false;
+    }
+    return Math.floor(performance.now() / 80) % 2 == 0;
+}
+
+function drawHealthHud() {
+    context.font = "24px Luminari, fantasy";
+    context.fillStyle = "rgb(255, 247, 227)";
+    context.fillText("Health " + healthState.current, 10, 100);
+}
+
+function resetHealthState() {
+    healthState.current = healthState.maximum;
+    healthState.invulnerableUntil = 0;
+    healthState.flashUntil = 0;
+}
+
+const drawHeroBeforeHealth = drawHero;
+drawHero = function() {
+    if (heroShouldFlash()) {
+        return 0;
+    }
+    return drawHeroBeforeHealth();
+};
+
+updateHooks.push(updateHealthState);
+hudHooks.push(drawHealthHud);
+resetHooks.push(resetHealthState);
 
 let FPS = 60;
 let interval = 1 / FPS;
