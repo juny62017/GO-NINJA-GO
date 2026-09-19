@@ -878,7 +878,7 @@ function checkSpriteTileCollision(sprite, tileX, tileY, tileIndex, collisions) {
     }
 };
 
-var checkSpriteTileCollisions = function(sprite, level) {
+function checkSpriteTileCollisions(sprite, level) {
     let levelWidth = level[0].length;
     let levelHeight = level.length;
     let collisions = {
@@ -904,7 +904,7 @@ var checkSpriteTileCollisions = function(sprite, level) {
     return collisions;
 };
 
-var resetHeroForLevel = function() {
+function resetHeroForLevel() {
     hero = {
         spriteWidth: 100,
         spriteHeight: 59,
@@ -929,19 +929,19 @@ var resetHeroForLevel = function() {
     attackCompleted = false;
 };
 
-var loadLevel = function(index, showNotice) {
+function loadLevel(index, showNotice) {
     currentLevelIndex = index;
     currentLevel = cloneLevel(levels[currentLevelIndex]);
     resetHeroForLevel();
     levelNoticeUntil = showNotice ? Date.now() + 1600 : 0;
 };
 
-var resetGame = function() {
+function resetGame() {
     points = 0;
     loadLevel(0, false);
 };
 
-var titleScreenLoop = function(now, oldTime) {
+function titleScreenLoop(now, oldTime) {
     var sx = 0;
     var sy = 0;
     var swidth = 384;
@@ -984,7 +984,7 @@ var titleScreenLoop = function(now, oldTime) {
     }
 };
 
-var gameOverScreen = function(now, oldTime) {
+function gameOverScreen(now, oldTime) {
     context.fillStyle = "black";
     context.fillRect(0, 0, 816, 480);
     context.font = "90px Luminari, fantasy";
@@ -1879,6 +1879,65 @@ function keepHeroInsideLevel() {
 
 getHeroCollisions = getStableHeroCollisions;
 updateHooks.push(keepHeroInsideLevel);
+
+const cameraState = {
+    x: 0,
+    targetX: 0,
+    smoothing: 10,
+    lookAhead: 72,
+    lastDirection: 1
+};
+
+function getCameraMaximum() {
+    if (!currentLevel.length) {
+        return 0;
+    }
+    return Math.max(0, currentLevel[0].length * TILE_SIZE - SCREEN_WIDTH);
+}
+
+function getCameraTarget() {
+    const heroCenter = hero.levelX + hero.spriteWidth / 2;
+    const direction = pressedKeys[65] ? -1 : pressedKeys[68] ? 1 : cameraState.lastDirection;
+    cameraState.lastDirection = direction;
+    const lookAhead = direction * cameraState.lookAhead;
+    return heroCenter - SCREEN_WIDTH / 2 + lookAhead;
+}
+
+function clampCamera(value) {
+    return Math.max(0, Math.min(value, getCameraMaximum()));
+}
+
+function updateSmoothCamera(seconds) {
+    cameraState.targetX = clampCamera(getCameraTarget());
+    const amount = Math.min(1, cameraState.smoothing * seconds);
+    cameraState.x += (cameraState.targetX - cameraState.x) * amount;
+    cameraState.x = clampCamera(cameraState.x);
+    scrollX = Math.round(cameraState.x * 100) / 100;
+    hero.renderX = hero.levelX - scrollX;
+    hero.renderY = hero.levelY;
+}
+
+function resetCameraState() {
+    cameraState.x = 0;
+    cameraState.targetX = 0;
+    cameraState.lastDirection = 1;
+    scrollX = 0;
+}
+
+function cameraIsStable() {
+    return Number.isFinite(cameraState.x) &&
+        cameraState.x >= 0 &&
+        cameraState.x <= getCameraMaximum();
+}
+
+updateCamera = function() {
+    updateSmoothCamera(interval);
+    if (!cameraIsStable()) {
+        resetCameraState();
+    }
+};
+
+resetHooks.push(resetCameraState);
 
 let FPS = 60;
 let interval = 1 / FPS;
