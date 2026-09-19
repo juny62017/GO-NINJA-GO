@@ -1057,7 +1057,7 @@ function continueToNextLevel() {
 const STAGE_PATH_START = 310;
 const STAGE_PATH_GAP = 98;
 
-var drawStagePath = function() {
+function drawStagePath() {
     let startX = STAGE_PATH_START;
     let gap = STAGE_PATH_GAP;
     let y = 335;
@@ -2076,6 +2076,75 @@ drawHero = function() {
 updateHooks.push(updateHealthState);
 hudHooks.push(drawHealthHud);
 resetHooks.push(resetHealthState);
+
+const attackState = {
+    active: false,
+    hitTiles: {},
+    reach: 44,
+    height: 34,
+    lastSwingAt: 0,
+    hits: 0
+};
+
+function getAttackBox() {
+    const facingRight = heroDirection == 1;
+    return {
+        levelX: facingRight ? hero.levelX + 68 : hero.levelX - attackState.reach + 32,
+        levelY: hero.levelY + 16,
+        spriteWidth: attackState.reach,
+        spriteHeight: attackState.height
+    };
+}
+
+function attackTouchesTile(box, row, column) {
+    const tileX = column * TILE_SIZE;
+    const tileY = row * TILE_SIZE;
+    return box.levelX < tileX + TILE_SIZE &&
+        box.levelX + box.spriteWidth > tileX &&
+        box.levelY < tileY + TILE_SIZE &&
+        box.levelY + box.spriteHeight > tileY;
+}
+
+function breakAttackTile(row, column) {
+    const key = row + ":" + column;
+    if (attackState.hitTiles[key]) {
+        return;
+    }
+    attackState.hitTiles[key] = true;
+    currentLevel[row][column] = 0;
+    attackState.hits += 1;
+    points += 250;
+}
+
+function updateAttackHitbox() {
+    const attacking = Boolean(pressedKeys[75]);
+    if (!attacking) {
+        attackState.active = false;
+        attackState.hitTiles = {};
+        return;
+    }
+    if (!attackState.active) {
+        attackState.lastSwingAt = performance.now();
+    }
+    attackState.active = true;
+    const box = getAttackBox();
+    const tilesNearAttack = getNearbyTiles(box, currentLevel);
+    for (let i = 0; i < tilesNearAttack.length; i++) {
+        const item = tilesNearAttack[i];
+        if (item.tile == 8 && attackTouchesTile(box, item.row, item.column)) {
+            breakAttackTile(item.row, item.column);
+        }
+    }
+}
+
+function resetAttackState() {
+    attackState.active = false;
+    attackState.hitTiles = {};
+    attackState.lastSwingAt = 0;
+}
+
+updateHooks.push(updateAttackHitbox);
+resetHooks.push(resetAttackState);
 
 let FPS = 60;
 let interval = 1 / FPS;
