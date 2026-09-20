@@ -1120,7 +1120,7 @@ function levelTransitionScreen(now, oldTime) {
     }
 };
 
-var restartAdventure = function() {
+function restartAdventure() {
     runComplete = false;
     demoComplete = false;
     levelTransition = false;
@@ -1725,6 +1725,7 @@ function updateGameScreen(now, seconds) {
 }
 
 function animationFrame(now) {
+    context.setTransform(1, 0, 0, 1, 0, 0);
     const seconds = getFrameSeconds(now);
     gameState.elapsedSeconds += seconds;
     gameState.frameNumber += 1;
@@ -2219,6 +2220,102 @@ function resetScoreState() {
 updateHooks.push(updateScoreSystem);
 hudHooks.push(drawScoreDetails);
 resetHooks.push(resetScoreState);
+
+const transitionState = {
+    entering: false,
+    enterKeyWasDown: false,
+    completedAt: 0,
+    minimumDelay: 350,
+    lastLevel: -1
+};
+
+function beginSafeTransition() {
+    if (transitionState.entering || levelTransition || runComplete) {
+        return false;
+    }
+    transitionState.entering = true;
+    transitionState.completedAt = performance.now();
+    transitionState.lastLevel = currentLevelIndex;
+    clearInputState();
+    return true;
+}
+
+function finishSafeTransition() {
+    transitionState.entering = false;
+    transitionState.enterKeyWasDown = true;
+    gameState.levelStartedAt = performance.now();
+    scoreState.levelStartedAt = performance.now();
+    clearInputState();
+}
+
+function transitionCanContinue() {
+    return performance.now() - transitionState.completedAt >= transitionState.minimumDelay;
+}
+
+function updateTransitionState() {
+    const enterDown = Boolean(pressedKeys[13]);
+    if (!enterDown) {
+        transitionState.enterKeyWasDown = false;
+    }
+    if (!levelTransition) {
+        transitionState.entering = false;
+    }
+}
+
+const continueToNextLevelBeforeSafety = continueToNextLevel;
+continueToNextLevel = function() {
+    if (!transitionCanContinue() || transitionState.enterKeyWasDown) {
+        return;
+    }
+    continueToNextLevelBeforeSafety();
+    finishSafeTransition();
+};
+
+const finishGameplayFrameBeforeSafety = finishGameplayFrame;
+finishGameplayFrame = function() {
+    const levelBefore = currentLevelIndex;
+    finishGameplayFrameBeforeSafety();
+    if (levelTransition && transitionState.lastLevel != levelBefore) {
+        beginSafeTransition();
+        transitionState.lastLevel = levelBefore;
+    }
+    if (runComplete) {
+        clearInputState();
+        saveBestRun();
+    }
+};
+
+function getBestRun() {
+    return Number(localStorage.getItem("platformPillageBest") || 0);
+}
+
+function saveBestRun() {
+    if (finalScore > getBestRun()) {
+        localStorage.setItem("platformPillageBest", String(finalScore));
+    }
+}
+
+function drawBestRun() {
+    if (!gameStarted) {
+        return;
+    }
+    context.font = "16px Arial, sans-serif";
+    context.fillStyle = "rgba(255, 247, 227, 0.75)";
+    context.textAlign = "right";
+    context.fillText("Best " + getBestRun(), SCREEN_WIDTH - 12, 100);
+    context.textAlign = "start";
+}
+
+function resetTransitionState() {
+    transitionState.entering = false;
+    transitionState.enterKeyWasDown = false;
+    transitionState.completedAt = 0;
+    transitionState.lastLevel = -1;
+}
+
+updateHooks.push(updateTransitionState);
+hudHooks.push(drawBestRun);
+resetHooks.push(resetTransitionState);
 
 let FPS = 60;
 let interval = 1 / FPS;
