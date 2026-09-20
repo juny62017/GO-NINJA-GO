@@ -22,6 +22,12 @@ I also added the third level... level progress display... checkpoints, and smoot
 I improved the restart system...game timing...level transitions  and best score saving. 
 I also worked on the final victory screen and added enemies that move around and can be defeated by the player.
 
+## archit (archiraj99 ) ( umm i did 12.1 hrs )
+I worked on the basic game layout and created the first two levels...
+I added player movement and also  camera scrolling,...
+collision detection... and collectibles. 
+I also improved the jumping system and added health and attack detection, 
+and made the controls feel smoother.
 
 ## Features
 
