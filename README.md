@@ -89,4 +89,9 @@ we both didnt use any ai ..
 however the ai usage in @juny62017 is of different work, and its not realted to project. that was counted by hackatime by mistake
 
 
+## gameplay 
+
+
+https://github.com/user-attachments/assets/d4007c3d-9d0d-4389-b98b-20db92ef0b41
+
 
