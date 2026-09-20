@@ -2317,6 +2317,137 @@ updateHooks.push(updateTransitionState);
 hudHooks.push(drawBestRun);
 resetHooks.push(resetTransitionState);
 
+const enemyLayouts = [
+    [
+        { column: 17, row: 12, left: 15, right: 21 },
+        { column: 36, row: 10, left: 34, right: 40 },
+        { column: 57, row: 12, left: 54, right: 61 }
+    ],
+    [
+        { column: 22, row: 11, left: 19, right: 26 },
+        { column: 45, row: 8, left: 42, right: 49 },
+        { column: 67, row: 12, left: 64, right: 71 }
+    ],
+    [
+        { column: 14, row: 10, left: 12, right: 18 },
+        { column: 39, row: 12, left: 36, right: 43 },
+        { column: 62, row: 9, left: 59, right: 66 },
+        { column: 79, row: 12, left: 76, right: 83 }
+    ]
+];
+
+const enemyState = {
+    level: -1,
+    enemies: [],
+    defeated: 0
+};
+
+function makeEnemy(layout, index) {
+    return {
+        id: currentLevelIndex + ":" + index,
+        levelX: layout.column * TILE_SIZE + 2,
+        levelY: layout.row * TILE_SIZE - 28,
+        spriteWidth: 28,
+        spriteHeight: 28,
+        left: layout.left * TILE_SIZE,
+        right: layout.right * TILE_SIZE,
+        direction: index % 2 == 0 ? 1 : -1,
+        speed: 52 + index * 4,
+        alive: true
+    };
+}
+
+function loadLevelEnemies() {
+    const layout = enemyLayouts[currentLevelIndex] || [];
+    enemyState.level = currentLevelIndex;
+    enemyState.enemies = layout.map(makeEnemy);
+}
+
+function boxesOverlap(first, second) {
+    return first.levelX < second.levelX + second.spriteWidth &&
+        first.levelX + first.spriteWidth > second.levelX &&
+        first.levelY < second.levelY + second.spriteHeight &&
+        first.levelY + first.spriteHeight > second.levelY;
+}
+
+function defeatEnemy(enemy) {
+    enemy.alive = false;
+    enemyState.defeated += 1;
+    points += 500;
+    hero.velocityY = -3;
+}
+
+function updateEnemy(enemy, seconds) {
+    if (!enemy.alive) {
+        return;
+    }
+    enemy.levelX += enemy.direction * enemy.speed * seconds;
+    if (enemy.levelX <= enemy.left) {
+        enemy.levelX = enemy.left;
+        enemy.direction = 1;
+    } else if (enemy.levelX + enemy.spriteWidth >= enemy.right) {
+        enemy.levelX = enemy.right - enemy.spriteWidth;
+        enemy.direction = -1;
+    }
+
+    if (attackState.active && boxesOverlap(getAttackBox(), enemy)) {
+        defeatEnemy(enemy);
+        return;
+    }
+
+    const heroBox = getHeroCollisionBox();
+    if (boxesOverlap(heroBox, enemy)) {
+        damageHero(1);
+    }
+}
+
+function drawEnemy(enemy) {
+    if (!enemy.alive) {
+        return;
+    }
+    const x = Math.round(enemy.levelX - scrollX);
+    const y = Math.round(enemy.levelY);
+    if (x < -enemy.spriteWidth || x > SCREEN_WIDTH) {
+        return;
+    }
+    context.fillStyle = "rgb(73, 43, 32)";
+    context.fillRect(x + 3, y + 5, 22, 20);
+    context.fillStyle = "rgb(242, 131, 28)";
+    context.fillRect(x, y + 10, 4, 10);
+    context.fillRect(x + 24, y + 10, 4, 10);
+    context.fillStyle = "rgb(255, 247, 227)";
+    const eyeX = enemy.direction > 0 ? x + 17 : x + 8;
+    context.fillRect(eyeX, y + 10, 4, 4);
+    context.fillStyle = "rgb(34, 34, 34)";
+    context.fillRect(x + 5, y + 25, 7, 3);
+    context.fillRect(x + 16, y + 25, 7, 3);
+}
+
+function updateEnemies(seconds) {
+    if (enemyState.level != currentLevelIndex) {
+        loadLevelEnemies();
+    }
+    for (let i = 0; i < enemyState.enemies.length; i++) {
+        updateEnemy(enemyState.enemies[i], seconds);
+    }
+}
+
+function drawEnemies() {
+    for (let i = 0; i < enemyState.enemies.length; i++) {
+        drawEnemy(enemyState.enemies[i]);
+    }
+}
+
+function resetEnemies() {
+    enemyState.level = -1;
+    enemyState.enemies = [];
+    enemyState.defeated = 0;
+}
+
+updateHooks.push(updateEnemies);
+hudHooks.unshift(drawEnemies);
+resetHooks.push(resetEnemies);
+
 let FPS = 60;
 let interval = 1 / FPS;
 let frameCounter = 0;
