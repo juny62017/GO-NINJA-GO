@@ -5,6 +5,17 @@ GO NINJA GO is a small 2D platformer game me and my friend made
 You play as a ninja and have to go  through different levels by jumping across platforms, collecting items, and fighting enemies. 
 The goal is to reach the end of all three levels while getting the highest score possible.
 
+
+## WHY DOES IT FIT IN SPOOKY THEME 
+This game  is a dark spooky platformer set in a creepy nighttime world.....
+
+The game uses a dark forest..... a large moon,.....
+purple skies....shadowy mountains....strange glowing symbols....
+and you may not get scared but hostile creatures
+and an abandoned looking environment to create an scary mood
+
+ The dark visuals...mysterious enemies....were designed around a spooky style theme.....
+
 ## About the Game
 
 we wanted to make a simple platformer where the player can move around freely and explore different stages.
